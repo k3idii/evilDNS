@@ -1,0 +1,2 @@
+# evilDNS
+Evil DNS server
