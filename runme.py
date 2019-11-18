@@ -1,3 +1,4 @@
+import sys
 import dnslib.server
 import dnslib
 import payloads
@@ -45,14 +46,17 @@ def rand_hex(size=10):
 def _ret(a,b):
   return dict(rtype=a, data=b)
 
-def _common_handle_payload_list(ptr_list, rt, idx):
+def _common_handle_payload_list(ptr_list, rt, idx, prefix='', postfix=''):
+  def _fix(s):
+    return prefix + s.strip() + postfix
+
   if idx == 'a':
-    return [ _ret(rt, x.strip()) for x in ptr_list]
+    return [ _ret(rt, _fix(x)) for x in ptr_list]
   if idx == 'r':
     idx = random.randint(0,len(ptr_list)-1)
   else:
     idx = int(idx) % len(ptr_list)
-  return [ _ret(rt, ptr_list[idx].strip()) ]
+  return [ _ret(rt, _fix(ptr_list[idx])) ]
 
 class TheQueryResponsePair(object):
   def __init__(self, req, rsp):
@@ -113,7 +117,10 @@ class TheQueryResponsePair(object):
   def _handle_opt_ll(self, size=100):
     size = int(size)
     return [ _ret("CNAME", "x" * size + FRENDLY_TLD)  ]
-    
+
+  def _handle_opt_utf8(self, rt='txt', idx='r'):
+    return _common_handle_payload_list(payloads.utf8s, rt, idx, prefix='utf', postfix='utf')
+
   def _handle_opt_xss(self, rt='txt', idx = 'r'):
     return _common_handle_payload_list(payloads.xss, rt, idx)
 
@@ -163,6 +170,9 @@ class MyResolver(dnslib.server.BaseResolver):
 
 
 def main():
+  global LISTEN_PORT
+  if len(sys.argv) > 1:
+    LISTEN_PORT = int(sys.argv[1])
   print("Will listen on {} : {} ".format(LISTEN_ADDR, LISTEN_PORT))
   resolver = MyResolver()
   logger = dnslib.server.DNSLogger(prefix=False)
@@ -173,4 +183,4 @@ def main():
 if __name__ == "__main__":
   main()
 else:
-  print "This is MAIN module, you should run it !"
+  print("This is MAIN module, you should run it !")
