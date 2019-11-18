@@ -1,7 +1,8 @@
 # evilDNS
 Evil DNS server
+===============
 
-
+```
 Usage:
 
 
@@ -31,5 +32,5 @@ Available functions:
   sectionName = ["ans", "add", "aut" ]
   => sets RR section that following records will be put in
 
-
+```
 
