@@ -2,6 +2,9 @@ import dnslib.server
 import dnslib
 import payloads
 import random
+import string
+import re
+
 
 import hackedLabel
 
@@ -21,6 +24,24 @@ FRENDLY_TLD = ".fake.in.0xe.ee"
 
 DEFAULT_TTL = 1
 
+KEYWORD_TO_RR_MAP = dict(
+      ans = "add_answer",
+      aut = "add_auth",
+      add = "add_ar",
+    )
+
+
+def rand_from(src, size=10):
+  return ''.join(random.choice(src) for _ in xrange(size))
+
+
+def rand_az(size=10):
+  return rand_from(string.ascii_lowercase, size)
+
+def rand_hex(size=10):
+  return rand_from(string.hexdigits, size)
+
+
 def _ret(a,b):
   return dict(rtype=a, data=b)
 
@@ -37,9 +58,19 @@ class TheQueryResponsePair(object):
   def __init__(self, req, rsp):
     self._req = req
     self._rsp = rsp
+    self._qclass = self._req.q.qclass
     self._qname = str(req.q.qname)
+    self.set_add_func()
 
-  def _fast_add_ans(self, rt, rd):
+  def set_add_func(self, name="add_answer"):
+    self._curr_add_func_name = name
+    self._add_func_ptr = getattr(self._rsp, self._curr_add_func_name, self._invalid_add_func)
+    #print("SET PTR:" + str(self._add_func_ptr))
+
+  def _invalid_add_func(self, *a, **kw):
+    raise Exception("Invalid add function")
+
+  def _fast_add_answer(self, rt, rd):
     self._rsp.add_answer(
       dnslib.RR(
         rname=self._qname, 
@@ -64,11 +95,20 @@ class TheQueryResponsePair(object):
       if _func_ptr is None:
         continue
       result = _func_ptr(*arg)
+      if result is None:
+        continue
       for entry in result:
         upper_rt = entry['rtype'].upper()
         rt_val = getattr(dnslib.QTYPE, upper_rt)
         rd_class = getattr(dnslib, upper_rt)
-        self._fast_add_ans(rt_val, rd_class(entry['data']))
+        self._add_func_ptr( dnslib.RR(
+          rname = self._qname,
+          ttl = DEFAULT_TTL,
+          rclass = self._qclass,
+          rtype = rt_val,
+          rdata = rd_class(entry['data'])
+        ))
+        #self._fast_add_rr(rt_val, rd_class(entry['data']))
 
   def _handle_opt_ll(self, size=100):
     size = int(size)
@@ -79,6 +119,25 @@ class TheQueryResponsePair(object):
 
   def _handle_opt_sqli(self, rt='txt', idx = 'r'):
     return _common_handle_payload_list(payloads.sqli, rt, idx)  
+
+  def _handle_opt_ans(self, rt='txt', val='ok', dot=':'):
+    return [_ret(rt, val.replace(dot,"."))]
+
+  def _handle_opt_cloop(self,nonce=None):
+    rv = self._qname
+    new_val = 'cloop-' +rand_az(10)
+    if nonce is None:
+      rv = rv.replace('cloop',new_val)
+    else:
+      rv = re.sub('cloop-[a-z]+', new_val, rv)
+    return [_ret('NS', rv)]
+
+  def _handle_opt_setrr(self, rrname):
+    new_func = KEYWORD_TO_RR_MAP.get(rrname, None)
+    if new_func:
+      self.set_add_func(new_func)
+
+    
 
 
 
