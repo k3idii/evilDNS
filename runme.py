@@ -5,7 +5,7 @@ import payloads
 import random
 import string
 import re
-
+import base64
 
 import hackedLabel
 
@@ -105,7 +105,7 @@ class TheQueryResponsePair(object):
         upper_rt = entry['rtype'].upper()
         rt_val = getattr(dnslib.QTYPE, upper_rt)
         rd_class = getattr(dnslib, upper_rt)
-        self._add_func_ptr( dnslib.RR(
+        self._add_func_ptr(dnslib.RR(
           rname = self._qname,
           ttl = DEFAULT_TTL,
           rclass = self._qclass,
@@ -129,6 +129,14 @@ class TheQueryResponsePair(object):
 
   def _handle_opt_ans(self, rt='txt', val='ok', dot=':'):
     return [_ret(rt, val.replace(dot,"."))]
+
+  def _handle_opt_dec(self, rt='txt', val='4141', code='hex'):
+    if code == 'hex':
+      val = base64.binascii.unhexlify(val)
+    if code == 'b64':
+      val = base64.b64decode(val)
+    return [_ret(rt, val)]
+
 
   def _handle_opt_cloop(self,nonce=None):
     rv = self._qname
