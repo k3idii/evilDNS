@@ -18,7 +18,7 @@ dnslib.dns.DNSBuffer = hackedLabel.HackedLabelBuffer # overcome 64bytes limit in
 logger = None
 
 LISTEN_ADDR = "0.0.0.0"
-LISTEN_PORT = 15353
+LISTEN_PORT = 53
 
 FRENDLY_TLD = ".fake.in.0xe.ee"
 
