@@ -137,8 +137,7 @@ class TheQueryResponsePair(object):
       val = base64.b64decode(val)
     return [_ret(rt, val)]
 
-
-  def _handle_opt_cloop(self,nonce=None):
+  def _handle_opt_cloop(self, nonce=None):
     rv = self._qname
     new_val = 'cloop-' +rand_az(10)
     if nonce is None:
